@@ -52,7 +52,7 @@ def _prepare_command_script(commands: str, fix_initial_dollar=True, debug=False)
             new_commands.append(command)
         commands = "\n".join(new_commands)
 
-    script_template = f"""/usr/bin/env bash 
+    script_template = f"""#!/usr/bin/env bash 
 
 {commands}
     """
