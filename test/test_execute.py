@@ -35,12 +35,32 @@ echo 'hi mars'
 hi mars
 """)
 
+    def test_run_in_child_container(self):
+        output = execute.run_in_child_container("bash", "echo 'hello world'")
+        self.assertEqual(output, "hello world\n")
+
+        output = execute.run_in_child_container("bash", """
+$ echo 'hello dollar'
+
+$ pwd 
+
+$ echo \
+    'hello \
+        split'
+        """ )
+        self.assertEqual(output, 
+"""hello dollar
+/
+hello         split
+""")
+
 
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(ExecuteTestCase('test_get_client'))
     suite.addTest(ExecuteTestCase('test_get_container'))
     suite.addTest(ExecuteTestCase('test_run_in_container'))
+    suite.addTest(ExecuteTestCase('test_run_in_child_container'))
 
     return suite
 
