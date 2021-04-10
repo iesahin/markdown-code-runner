@@ -48,7 +48,7 @@ def _prepare_command_script(commands: str, fix_initial_dollar=True, trace=True):
         command_lines = commands.split("\n")
         new_commands = []
         for command in command_lines:
-            cat_command = f"cat << MARKDOWNCOMMANDEOL\n### RUNNING ###\n{command}\nMARKDOWNCOMMANDEOL\n"
+            cat_command = f"cat << MARKDOWNCOMMANDEOL\n### RUNNING ###\n$ {command}\n###############\nMARKDOWNCOMMANDEOL\n"
             new_commands.append(cat_command)
             new_commands.append(command)
         commands = "\n".join(new_commands)
