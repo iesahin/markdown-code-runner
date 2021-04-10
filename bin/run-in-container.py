@@ -58,6 +58,7 @@ def main():
     else:
         whole_script = "\n".join([cb.code for cb in code_blocks])
         result = execute.run_in_child_container(container, whole_script, fix_initial_dollar, debug=debug)
+        print(result)
     if stop:
         execute.stop_containers()
 
