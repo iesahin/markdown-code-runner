@@ -1,4 +1,5 @@
 
+from typing import Container
 import docker
 import re
 import string
@@ -37,13 +38,13 @@ def _split_command_lines(command: str):
     "Splits commands written in a single code block"
     return command.split("\n")
 
-def _prepare_command_script(commands: str, fix_initial_dollar=True, debug=False):
+def _prepare_command_script(commands: str, fix_initial_dollar=True, trace=True):
     commands = _merge_command_lines(commands)
     if fix_initial_dollar:
         if len(re.findall(r'^[$]\s+', commands, re.MULTILINE)) > 0:
             commands = _remove_no_prompt_lines(commands)
 
-    if debug: 
+    if trace: 
         command_lines = commands.split("\n")
         new_commands = []
         for command in command_lines:
@@ -60,7 +61,7 @@ def _prepare_command_script(commands: str, fix_initial_dollar=True, debug=False)
     return script_template
 
 
-def run_in_child_container(image_name: str, commands: str, fix_initial_dollar=True, debug=False):
+def run_in_child_container(image_name: str, commands: str, fix_initial_dollar=True, trace=True, debug=False):
     "Runs the commands in a new container derived from the given image"
 
     random_dirname = random.randint(10000, 99999)
@@ -76,7 +77,7 @@ CMD ["/{script_filename}"]
 
     os.makedirs(temp_dir)
 
-    script = _prepare_command_script(commands, fix_initial_dollar)
+    script = _prepare_command_script(commands, fix_initial_dollar=fix_initial_dollar, trace=trace)
     if debug:
         print("#### SCRIPT TO RUN IN {image_name}")
         print(script)
@@ -90,15 +91,23 @@ CMD ["/{script_filename}"]
         docker_f.write(dockerfile_content)
 
     if debug:
-        print("### DOCKERFILE FOR CHILD CONTAINER")
+        print("### DOCKERFILE FOR THE CHILD CONTAINER")
         print(dockerfile_content)
 
     client = get_client()
     image, logs = client.images.build(path=temp_dir)
     if debug:
-        print("### BUILD LOGS FOR THE CONTAINER")
-        print("\n".join([str(l) for l in logs]))
-    output = client.containers.run(image)
+        print("### BUILD LOGS FOR THE CHILD CONTAINER")
+        print("\n".join([str(l["stream"]) for l in logs if "stream" in l]))
+    try:
+        output = client.containers.run(image)
+    except docker.errors.ContainerError as e:
+        print("### Container returns a nonzero exit code ###")
+        print("Container Directory: ", temp_dir)
+        print("Exit Status: ", e.exit_status)
+        print("Output: \n", e.stderr.decode("utf-8"))
+        print(str(e))
+        output = e.stderr
     return output.decode("utf-8")
 
 def run_in_container(image_name: str, command: str, fix_initial_dollar=True, debug=False):

@@ -22,6 +22,7 @@ def main():
     argparser.add_argument("--no-stop", action="store_true", default = False, help="Don't stop the containers at the end.")
     argparser.add_argument("--language", "-l", default="", help="Filter the blocks by ```language\ncode\ncode\n```. Implies --no-inline, as inline code elements cannot specify language")
     argparser.add_argument("--debug", default=False, action="store_true", help="Show debug output")
+    argparser.add_argument("--no-trace", default=False, action="store_true", help="Add interleaved tracing commands for Bash scripts")
     
     args = argparser.parse_args()
 
@@ -38,21 +39,25 @@ def main():
     if debug:
         pprint(args)
 
+    code_blocks = []
+
     for md_filename in args.files:
-        code_blocks = parse.parse_file(
+        file_blocks = parse.parse_file(
             md_filename,
             parse_inline = inline,
             parse_blocks = block,
             katacoda_tags = [katacoda_tag],
             language = language
         )
-        if line_by_line:
-            for cb in code_blocks: 
-                result = execute.run_in_container(container, cb.code, fix_initial_dollar=fix_initial_dollar, debug=debug)
-                print(result[1])
-        else:
-            whole_script = "\n".join([cb.code for cb in code_blocks])
-            result = execute.run_in_child_container(container, whole_script, fix_initial_dollar, debug=debug)
+        code_blocks += file_blocks
+
+    if line_by_line:
+        for cb in code_blocks: 
+            result = execute.run_in_container(container, cb.code, fix_initial_dollar=fix_initial_dollar, debug=debug)
+            print(result[1])
+    else:
+        whole_script = "\n".join([cb.code for cb in code_blocks])
+        result = execute.run_in_child_container(container, whole_script, fix_initial_dollar, debug=debug)
     if stop:
         execute.stop_containers()
 
